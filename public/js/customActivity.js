@@ -91,6 +91,7 @@ define(['postmonger'], function (Postmonger) {
         $.ajax({
             url: '/journeys',
             type: 'GET',
+            cache: false,
             beforeSend: function() {
                 $('#loading-message').show();
                 $('#journey-radios').hide();
