@@ -33,7 +33,7 @@
     
     "configurationArguments":
     {
-        "applicationExtensionKey": "",
+        "applicationExtensionKey": "93b8e886-849b-426a-b7c0-2911864222dc",
         "save":
         {
             "url": "https://jb-rmam-a69ca48af193.herokuapp.com/journeybuilder/save",
