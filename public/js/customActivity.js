@@ -97,6 +97,7 @@ define(['postmonger'], function (Postmonger) {
                 $('#journey-radios').hide();
             },
             success: function (response) {
+                console.log(response.items); // Check if the newly created journey is present in the raw data
                 journeys = response.items.filter(journey => {
                     if (journey.defaults && journey.defaults.email) {
                         let apiEventEmail = journey.defaults.email.find(email => email.includes('APIEvent'));
