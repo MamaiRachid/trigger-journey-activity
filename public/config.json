@@ -27,7 +27,7 @@
           ],
           "outArguments": [
           ],
-          "url": "https://YOUR_HEROKU_APP_URL/journeybuilder/execute"
+          "url": "https://jb-rmam-a69ca48af193.herokuapp.com/journeybuilder/execute"
         }
       },
     
@@ -36,22 +36,22 @@
         "applicationExtensionKey": "",
         "save":
         {
-            "url": "https://YOUR_HEROKU_APP_URL/journeybuilder/save",
+            "url": "https://jb-rmam-a69ca48af193.herokuapp.com/journeybuilder/save",
             "verb": "POST"
         },
         "publish":
         {
-            "url": "https://YOUR_HEROKU_APP_URL/journeybuilder/publish",
+            "url": "https://jb-rmam-a69ca48af193.herokuapp.com/journeybuilder/publish",
             "verb": "POST"
         },
         "stop":
         {
-            "url": "https://YOUR_HEROKU_APP_URL/journeybuilder/stop",
+            "url": "https://jb-rmam-a69ca48af193.herokuapp.com/journeybuilder/stop",
             "verb": "POST"
         },
         "validate":
         {
-            "url": "https://YOUR_HEROKU_APP_URL/journeybuilder/validate",
+            "url": "https://jb-rmam-a69ca48af193.herokuapp.com/journeybuilder/validate",
             "verb": "POST"
         }
     },
