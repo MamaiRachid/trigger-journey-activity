@@ -19,7 +19,7 @@ exports.save = async function (req, res) {
         await saveToDatabase(payload);
         res.status(200).send('Save');
     } catch (error) {
-        console.error('Error saving data:', error);
+        console.error('Error saving data: ', error);
         res.status(500).send('Error saving data');
     }
 };
