@@ -108,6 +108,8 @@ define(['postmonger'], function (Postmonger) {
                     }
                     return false;
                 });
+                
+                console.log(journeys); // Log to check the journeys array before populating the UI
 
                 if (journeys.length === 0) {
                     $('#loading-message').text('No journeys with API Event entry source were found.');
