@@ -18,6 +18,17 @@ define(['postmonger'], function (Postmonger) {
         connection.trigger('ready');
         connection.trigger('requestTokens');
         connection.trigger('requestEndpoints');
+
+        // Add filter logic for the journey input box
+        $('#journey-filter').on('input', function () {
+            var filterValue = $(this).val().toLowerCase();
+
+            // Filter through the radio buttons for journeys
+            $('#journey-radios label').filter(function () {
+                var journeyName = $(this).text().toLowerCase();
+                $(this).toggle(journeyName.includes(filterValue));
+            });
+        });
     }
 
     connection.trigger('requestTriggerEventDefinition');
