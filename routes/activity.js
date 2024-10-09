@@ -1,27 +1,32 @@
 'use strict';
 const axios = require("axios");
-const { Pool } = require('pg');
+const { Client } = require('pg');
 
 // Global Variables
 const tokenURL = `${process.env.authenticationUrl}/v2/token`;
 
-// PostgreSQL connection pool
-const pool = new Pool({
-    connectionString: process.env.DATABASE_URL,
-    ssl: {
-        rejectUnauthorized: false
-    }
-});
+// Function to save API call record
+async function saveApiCall(endpoint) {
+    const client = new Client({
+        connectionString: process.env.DATABASE_URL,
+        ssl: {
+            rejectUnauthorized: false
+        }
+    });
 
-// Function to increment API call count
-const incrementApiCallCount = async (endpointName) => {
-    const client = await pool.connect();
+    await client.connect();
+
+    const query = 'INSERT INTO api_calls(endpoint, timestamp) VALUES($1, $2)';
+    const values = [endpoint, new Date()];
+
     try {
-        await client.query('INSERT INTO api_calls (endpoint, timestamp) VALUES ($1, NOW())', [endpointName]);
+        await client.query(query, values);
+    } catch (err) {
+        console.error('Error saving API call to database:', err.stack);
     } finally {
-        client.release();
+        await client.end();
     }
-};
+}
 
 /*
  * POST Handlers for various routes
@@ -36,7 +41,7 @@ exports.save = async function (req, res) {
         await saveToDatabase(payload);
         res.status(200).send('Save');
     } catch (error) {
-        console.error('Error saving data: ', error);
+        console.error('Error saving data:', error);
         res.status(500).send('Error saving data');
     }
 };
@@ -50,10 +55,7 @@ exports.execute = async function (req, res) {
         const uuid = inArguments.uuid;
 
         const token = await retrieveToken();
-        await incrementApiCallCount('retrieveToken');
-        
         const response = await triggerJourney(token, contactKey, APIEventKey, data);
-        await incrementApiCallCount('triggerJourney');
 
         const responsePayload = {
             uuid: uuid,
@@ -64,6 +66,8 @@ exports.execute = async function (req, res) {
         };
 
         await saveToDatabase(responsePayload);
+        await saveApiCall('/execute'); // Track API call
+
         res.status(200).send('Execute');
     } catch (error) {
         console.error('Error executing journey:', error);
@@ -82,22 +86,20 @@ exports.execute = async function (req, res) {
             console.error('Error saving error log to database:', dbError);
         }
 
+        await saveApiCall('/execute/error'); // Track error API call
         res.status(200).send('Execute'); // Ensure the journey continues
     }
 };
 
-exports.publish = async function (req, res) {
-    await incrementApiCallCount('publish');
+exports.publish = function (req, res) {
     res.status(200).send('Publish');
 };
 
-exports.validate = async function (req, res) {
-    await incrementApiCallCount('validate');
+exports.validate = function (req, res) {
     res.status(200).send('Validate');
 };
 
-exports.stop = async function (req, res) {
-    await incrementApiCallCount('stop');
+exports.stop = function (req, res) {
     res.status(200).send('Stop');
 };
 
@@ -135,6 +137,7 @@ async function triggerJourney(token, contactKey, APIEventKey, data) {
                 'Content-Type': 'application/json'
             }
         });
+        await saveApiCall('/triggerJourney'); // Track API call
         return { status: 'Success', error: null };
     } catch (error) {
         console.error('Error triggering journey:', error);
@@ -148,8 +151,8 @@ async function triggerJourney(token, contactKey, APIEventKey, data) {
 exports.getJourneys = async function (req, res) {
     try {
         const token = await retrieveToken();
-        await incrementApiCallCount('getJourneys');
         const journeys = await fetchJourneys(token);
+        await saveApiCall('/journeys'); // Track API call
         res.status(200).json(journeys);
     } catch (error) {
         console.error('Error retrieving journeys:', error);
@@ -161,8 +164,8 @@ exports.getJourneys = async function (req, res) {
  * Function to retrieve journeys
  */
 async function fetchJourneys(token) {
-    const journeysUrl = `${process.env.restBaseURL}/interaction/v1/interactions?$page=1&$pageSize=200`;
-    await incrementApiCallCount('fetchJourneys');
+    const journeysUrl = `${process.env.restBaseURL}/interaction/v1/interactions/`;
+
     try {
         const response = await axios.get(journeysUrl, {
             headers: {
@@ -170,6 +173,7 @@ async function fetchJourneys(token) {
                 'Content-Type': 'application/json'
             }
         });
+        await saveApiCall('/fetchJourneys'); // Track API call
         return response.data;
     } catch (error) {
         console.error('Error fetching journeys:', error);
@@ -182,11 +186,19 @@ async function fetchJourneys(token) {
  */
 exports.getActivityByUUID = async function (req, res) {
     const uuid = req.params.uuid;
+    const client = new Client({
+        connectionString: process.env.DATABASE_URL,
+        ssl: {
+            rejectUnauthorized: false
+        }
+    });
 
-    const client = await pool.connect();
+    await client.connect();
+
+    const query = 'SELECT * FROM activity_data WHERE uuid = $1';
+    const values = [uuid];
+
     try {
-        const query = 'SELECT * FROM activity_data WHERE uuid = $1';
-        const values = [uuid];
         const result = await client.query(query, values);
         if (result.rows.length > 0) {
             res.json(result.rows); // Return all matching rows
@@ -197,7 +209,7 @@ exports.getActivityByUUID = async function (req, res) {
         console.error('Error retrieving activity data from database:', err.stack);
         res.status(500).send('Internal Server Error');
     } finally {
-        client.release();
+        await client.end();
     }
 }
 
@@ -205,28 +217,35 @@ exports.getActivityByUUID = async function (req, res) {
  * Function to save data to the database
  */
 async function saveToDatabase(data) {
-    const client = await pool.connect();
+    const client = new Client({
+        connectionString: process.env.DATABASE_URL,
+        ssl: {
+            rejectUnauthorized: false
+        }
+    });
+
+    await client.connect();
+
+    // Ensure the table exists
+    await client.query(`
+        CREATE TABLE IF NOT EXISTS activity_data (
+            id SERIAL PRIMARY KEY,
+            uuid VARCHAR(36) NOT NULL,
+            contact_key VARCHAR(255) NOT NULL,
+            trigger_date TIMESTAMP NOT NULL,
+            status VARCHAR(50) NOT NULL,
+            error_log TEXT
+        )
+    `);
+
+    const query = 'INSERT INTO activity_data(uuid, contact_key, trigger_date, status, error_log) VALUES($1, $2, $3, $4, $5)';
+    const values = [data.uuid, data.contactKey, data.triggerDate, data.status, data.errorLog];
+
     try {
-        const query = 'INSERT INTO activity_data(uuid, contact_key, trigger_date, status, error_log) VALUES($1, $2, $3, $4, $5)';
-        const values = [data.uuid, data.contactKey, data.triggerDate, data.status, data.errorLog];
         await client.query(query, values);
     } catch (err) {
         console.error('Error saving data to database:', err.stack);
     } finally {
-        client.release();
+        await client.end();
     }
 }
-
-// New route to get total API calls
-exports.getApiCallsCount = async function (req, res) {
-    const client = await pool.connect();
-    try {
-        const result = await client.query('SELECT COUNT(*) AS total_api_calls FROM api_calls');
-        res.json({ total_api_calls: result.rows[0].total_api_calls });
-    } catch (error) {
-        console.error('Error fetching API calls count:', error);
-        res.status(500).json({ error: 'Internal Server Error' });
-    } finally {
-        client.release();
-    }
-};
