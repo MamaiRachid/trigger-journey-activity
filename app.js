@@ -40,6 +40,9 @@ app.get('/activity/:uuid', activity.getActivityByUUID);
 // New route to get total API calls
 app.get('/api/calls/count', activity.getApiCallCount); // <-- Add this line
 
+// New route to log all API calls
+app.get('/api/calls/count', activity.getApiCallCount);
+
 http.createServer(app).listen(
   app.get('port'), function(){
     console.log('Express server listening on port ' + app.get('port'));
