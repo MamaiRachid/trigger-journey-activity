@@ -34,7 +34,9 @@ exports.execute = async function (req, res) {
         const uuid = inArguments.uuid;
 
         const token = await retrieveToken();
+        await incrementApiCallCount('retrieveToken');
         const response = await triggerJourney(token, contactKey, APIEventKey, data);
+        await incrementApiCallCount('triggerJourney');
 
         const responsePayload = {
             uuid: uuid,
@@ -68,16 +70,32 @@ exports.execute = async function (req, res) {
     }
 };
 
+// Function to increment API call count
+const incrementApiCallCount = async (endpointName) => {
+    const client = await db.connect();
+    try {
+        await client.query('INSERT INTO api_calls (endpoint, timestamp) VALUES ($1, NOW())', [endpointName]);
+    } finally {
+        client.release();
+    }
+};
+
 
 exports.publish = function (req, res) {
+    // Increment API call count
+    await incrementApiCallCount('publish');
     res.status(200).send('Publish');
 };
 
 exports.validate = function (req, res) {
+    // Increment API call count
+    await incrementApiCallCount('validate');
     res.status(200).send('Validate');
 };
 
 exports.stop = function (req, res) {
+    // Increment API call count
+    await incrementApiCallCount('stop');
     res.status(200).send('Stop');
 };
 
@@ -128,6 +146,8 @@ async function triggerJourney(token, contactKey, APIEventKey, data) {
 exports.getJourneys = async function (req, res) {
     try {
         const token = await retrieveToken();
+        // Increment API call count
+        await incrementApiCallCount('getJourneys');
         const journeys = await fetchJourneys(token);
         res.status(200).json(journeys);
     } catch (error) {
@@ -141,7 +161,8 @@ exports.getJourneys = async function (req, res) {
  */
 async function fetchJourneys(token) {
     const journeysUrl = `${process.env.restBaseURL}/interaction/v1/interactions?$page=1&$pageSize=200`;
-
+    // Increment API call count
+    await incrementApiCallCount('fetchJourneys');
     try {
         const response = await axios.get(journeysUrl, {
             headers: {
