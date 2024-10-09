@@ -6,6 +6,16 @@ const { Client } = require('pg');
 // Global Variables
 const tokenURL = `${process.env.authenticationUrl}/v2/token`;
 
+// Function to increment API call count
+const incrementApiCallCount = async (endpointName) => {
+    const client = await db.connect();
+    try {
+        await client.query('INSERT INTO api_calls (endpoint, timestamp) VALUES ($1, NOW())', [endpointName]);
+    } finally {
+        client.release();
+    }
+};
+
 /*
  * POST Handlers for various routes
  */
@@ -67,16 +77,6 @@ exports.execute = async function (req, res) {
         }
 
         res.status(200).send('Execute'); // Ensure the journey continues
-    }
-};
-
-// Function to increment API call count
-const incrementApiCallCount = async (endpointName) => {
-    const client = await db.connect();
-    try {
-        await client.query('INSERT INTO api_calls (endpoint, timestamp) VALUES ($1, NOW())', [endpointName]);
-    } finally {
-        client.release();
     }
 };
 
