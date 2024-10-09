@@ -226,3 +226,14 @@ async function saveToDatabase(data) {
         await client.end();
     }
 }
+
+// New route to get total API calls
+app.get('/api/calls/count', async (req, res) => {
+    try {
+        const result = await pool.query('SELECT COUNT(*) AS total_api_calls FROM api_calls');
+        res.json({ total_api_calls: result.rows[0].total_api_calls });
+    } catch (error) {
+        console.error('Error fetching API calls count:', error);
+        res.status(500).json({ error: 'Internal Server Error' });
+    }
+});
