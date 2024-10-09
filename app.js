@@ -37,6 +37,9 @@ app.get('/journeys', activity.getJourneys);
 // New route to get activity data by UUID
 app.get('/activity/:uuid', activity.getActivityByUUID);
 
+// New route to get total API calls
+app.get('/api/calls/count', activity.getApiCallCount); // <-- Add this line
+
 http.createServer(app).listen(
   app.get('port'), function(){
     console.log('Express server listening on port ' + app.get('port'));
