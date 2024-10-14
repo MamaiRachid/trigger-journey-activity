@@ -164,7 +164,7 @@ exports.getJourneys = async function (req, res) {
  * Function to retrieve journeys
  */
 async function fetchJourneys(token) {
-    const journeysUrl = `${process.env.restBaseURL}/interaction/v1/interactions/`;
+    const journeysUrl = `${process.env.restBaseURL}/interaction/v1/interactions?$page=1&$pageSize=100`;
 
     try {
         const response = await axios.get(journeysUrl, {
